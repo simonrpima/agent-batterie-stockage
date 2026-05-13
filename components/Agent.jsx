@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from "react";
 
-const API_URL = "https://api.anthropic.com/v1/messages";
+const API_URL ="/api/claude";
 
 const REGIONS = [
   "Île-de-France", "Auvergne-Rhône-Alpes", "Nouvelle-Aquitaine",
