@@ -19,4 +19,11 @@ export default function Prospection() {
     const elevage = ['0141','0142','0143','0144','0145','0146','0147','0149'];
     const nafClean = (naf||'').replace('.','').substring(0,4);
     const isElevage = elevage.some(e => nafClean.startsWith(e));
-    const surfaces = {'00':isElevage?800:600,'01':isElevage?1200:800,'02':
+   const surfaces = {
+  '00': isElevage ? 800 : 600,
+  '01': isElevage ? 1200 : 800,
+  '02': isElevage ? 1500 : 1000,
+  '03': isElevage ? 2000 : 1200,
+  '11': isElevage ? 2500 : 1500,
+  '12': isElevage ? 3000 : 2000
+}; 
