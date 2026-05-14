@@ -6,14 +6,14 @@ export async function GET(request) {
   const nb = searchParams.get("nb") || "50";
   const type = searchParams.get("type") || "";
 
-  let q = `codePostalEtablissement:${dept}*+AND+etatAdministratifEtablissement:A`;
+  let q;
   if (type) {
-    q += `+AND+denominationUniteLegale:${type}*`;
+    q = `denominationUniteLegale:${type}* AND codePostalEtablissement:${dept}* AND etatAdministratifEtablissement:A`;
   } else {
-    q += `+AND+(denominationUniteLegale:GAEC*+OR+denominationUniteLegale:EARL*+OR+denominationUniteLegale:SCEA*)`;
+    q = `(denominationUniteLegale:GAEC* OR denominationUniteLegale:EARL* OR denominationUniteLegale:SCEA*) AND codePostalEtablissement:${dept}* AND etatAdministratifEtablissement:A`;
   }
 
-  const url = `https://api.insee.fr/api-sirene/3.11/siret?q=${q}&nombre=${nb}`;
+  const url = `https://api.insee.fr/api-sirene/3.11/siret?q=${encodeURIComponent(q)}&nombre=${nb}`;
 
   const response = await fetch(url, {
     headers: {
