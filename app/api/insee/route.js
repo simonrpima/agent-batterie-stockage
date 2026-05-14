@@ -17,7 +17,7 @@ export async function GET(request) {
 
   const response = await fetch(url, {
     headers: {
-      "Authorization": `Bearer ${process.env.INSEE_API_KEY}`,
+      "X-INSEE-Api-Key-Integration": process.env.INSEE_API_KEY,
       "Accept": "application/json"
     }
   });
