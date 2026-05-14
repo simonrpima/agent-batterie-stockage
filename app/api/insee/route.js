@@ -1,19 +1,11 @@
+
 import { NextResponse } from "next/server";
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const dept = searchParams.get("dept") || "59";
-  const nb = searchParams.get("nb") || "50";
-  const type = searchParams.get("type") || "";
 
-  let q;
-  if (type) {
-    q = `denominationUniteLegale:${type}* AND codePostalEtablissement:${dept}* AND etatAdministratifEtablissement:A`;
-  } else {
-    q = `(denominationUniteLegale:GAEC* OR denominationUniteLegale:EARL* OR denominationUniteLegale:SCEA*) AND codePostalEtablissement:${dept}* AND etatAdministratifEtablissement:A`;
-  }
-
-  const url = `https://api.insee.fr/api-sirene/3.11/siret?q=${encodeURIComponent(q)}&nombre=${nb}`;
+  const url = `https://api.insee.fr/api-sirene/3.11/siret?q=codePostalEtablissement:${dept}000&nombre=5`;
 
   const response = await fetch(url, {
     headers: {
