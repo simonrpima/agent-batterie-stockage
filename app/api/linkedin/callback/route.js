@@ -30,7 +30,8 @@ export async function GET(request) {
     return NextResponse.json({ error: "Token exchange failed", details: tokenData }, { status: 400 });
   }
 
-  const profileRes = await fetch("https://api.linkedin.com/v2/userinfo", {
+  // Récupérer l'ID via l'endpoint /v2/me
+  const profileRes = await fetch("https://api.linkedin.com/v2/me", {
     headers: { Authorization: `Bearer ${tokenData.access_token}` },
   });
   const profile = await profileRes.json();
@@ -39,8 +40,8 @@ export async function GET(request) {
     message: "✅ Authentification réussie !",
     access_token: tokenData.access_token,
     expires_in: tokenData.expires_in,
-    linkedin_id: profile.sub,
-    name: profile.name,
-    instruction: "Copiez access_token et linkedin_id dans les variables Vercel : LINKEDIN_ACCESS_TOKEN et LINKEDIN_USER_ID"
+    linkedin_id: profile.id,
+    name: `${profile.localizedFirstName} ${profile.localizedLastName}`,
+    instruction: "Copiez access_token et linkedin_id dans Vercel : LINKEDIN_ACCESS_TOKEN et LINKEDIN_USER_ID"
   });
 }
