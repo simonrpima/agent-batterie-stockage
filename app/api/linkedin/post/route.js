@@ -24,7 +24,7 @@ async function generateContent(topic) {
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   const msg = await anthropic.messages.create({
-    model: "claude-sonnet-4-20250514",
+    model: "claude-sonnet-4-5-20251022",
     max_tokens: 1024,
     messages: [
       {
@@ -56,7 +56,6 @@ async function postToLinkedIn(content) {
   const accessToken = process.env.LINKEDIN_ACCESS_TOKEN;
   if (!accessToken) throw new Error("LINKEDIN_ACCESS_TOKEN manquant");
 
-  // Récupérer l'URN du profil
   const profileRes = await fetch("https://api.linkedin.com/v2/userinfo", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
@@ -67,7 +66,6 @@ async function postToLinkedIn(content) {
   const profile = await profileRes.json();
   const authorUrn = `urn:li:person:${profile.sub}`;
 
-  // Poster
   const postRes = await fetch("https://api.linkedin.com/v2/ugcPosts", {
     method: "POST",
     headers: {
@@ -98,7 +96,6 @@ async function postToLinkedIn(content) {
 }
 
 export async function GET(request) {
-  // Sécurité cron Vercel (optionnel mais recommandé)
   const authHeader = request.headers.get("authorization");
   if (
     process.env.CRON_SECRET &&
