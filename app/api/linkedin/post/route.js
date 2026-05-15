@@ -1,74 +1,86 @@
-import { NextResponse } from "next/server";
+import Anthropic from "@anthropic-ai/sdk";
 
-const POST_TYPES = ["conseil", "offre", "conseil", "offre", "conseil", "offre"];
+const TOPICS = [
+  "Les avantages du stockage par batterie pour les particuliers : autoconsommation optimisée, indépendance du réseau, économies sur la facture EDF",
+  "Batteries LFP vs NMC : pourquoi la technologie Lithium Fer Phosphate (Renon Power / Xcellent) est la plus sûre pour une installation résidentielle",
+  "Tout savoir sur le raccordement batterie + panneaux solaires : AC-couplé vs DC-couplé, onduleurs hybrides",
+  "ROI et rentabilité d'un système solaire + batterie en 2025 : chiffres réels, simulation pour une maison de 150 m²",
+  "Les aides pour le stockage batterie en France : TVA 5,5%, CEE, aides régionales — ce qui existe vraiment",
+  "Batteries Xcellent vs Xtreme LV vs EBrick de Renon Power : comment choisir la bonne capacité",
+  "Installateur Quali PV 500 kWc : ce que ça signifie pour la qualité de votre installation solaire",
+  "Durée de vie, garantie, maintenance, recyclage des batteries LFP : les vraies réponses",
+  "Autoconsommation collective et batteries : les solutions pour copropriétés et PME",
+  "Comment dimensionner votre système batterie : capacité utile, profil de consommation, puissance crête",
+];
 
-export async function GET() {
-  const accessToken = process.env.LINKEDIN_ACCESS_TOKEN;
+function getTodayTopic() {
+  const dayOfYear = Math.floor(
+    (Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000
+  );
+  return TOPICS[dayOfYear % TOPICS.length];
+}
 
-  if (!accessToken) {
-    return NextResponse.json({ error: "LINKEDIN_ACCESS_TOKEN manquant" }, { status: 500 });
-  }
+async function generateContent(topic) {
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  const today = new Date();
-  const weekNumber = Math.floor(today.getTime() / (7 * 24 * 60 * 60 * 1000));
-  const postType = POST_TYPES[weekNumber % POST_TYPES.length];
-
-  const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 500,
-      messages: [{
+  const msg = await anthropic.messages.create({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 1024,
+    messages: [
+      {
         role: "user",
-        content: postType === "conseil"
-          ? `Rédige un post LinkedIn professionnel de 150-200 mots sur le stockage d'énergie solaire pour les installateurs photovoltaïques. Ton : expert, direct, utile. Inclure : un conseil pratique concret, 3-4 hashtags (#stockageenergie #photovoltaique #batteriesolaire #renouvelables). Terminer par : "👉 batterie-stockage.fr | 06 63 70 66 30". Pas de titre, juste le post.`
-          : `Rédige un post LinkedIn professionnel de 150-200 mots présentant une offre produit de batterie de stockage Renon Power. Produits : Xcellent 5,12kWh 1190€ HT, Xcellent Plus 16kWh 2390€ HT, EBrick 5,12kWh 1090€ HT. Ton : commercial, direct, orienté installateurs Quali PV. Inclure : prix HT, livraison 48-72h France, stock disponible, 3-4 hashtags. Terminer par : "👉 batterie-stockage.fr | 06 63 70 66 30". Pas de titre, juste le post.`
-      }],
-    }),
+        content: `Tu es Simon Monteiro, dirigeant de CLIQUIDE FRANCE SAS, expert en stockage d'énergie solaire.
+Tu distribues les batteries Renon Power (Xcellent, Xtreme LV, EBrick), installateur Quali PV 500 kWc.
+Site : batterie-stockage.fr | Tel : 06 63 70 66 30 | Zone : Nord de la France
+
+Écris un post LinkedIn professionnel sur ce sujet : "${topic}"
+
+Règles :
+- 150 à 250 mots
+- Commence par une accroche forte (question ou chiffre), PAS par "Je" ou "Bonjour"
+- Ton expert mais accessible
+- 1 ou 2 emojis maximum
+- Termine par un appel à l'action discret (mentionner batterie-stockage.fr)
+- 3 à 5 hashtags à la fin
+- Réponds UNIQUEMENT avec le texte du post, rien d'autre`,
+      },
+    ],
   });
 
-  const claudeData = await claudeRes.json();
-  const postContent = claudeData.content?.[0]?.text;
+  const block = msg.content.find((b) => b.type === "text");
+  if (!block) throw new Error("Pas de texte dans la réponse Claude");
+  return block.text.trim();
+}
 
-  if (!postContent) {
-    return NextResponse.json({ error: "Erreur génération contenu Claude" }, { status: 500 });
-  }
+async function postToLinkedIn(content) {
+  const accessToken = process.env.LINKEDIN_ACCESS_TOKEN;
+  if (!accessToken) throw new Error("LINKEDIN_ACCESS_TOKEN manquant");
 
-  // Récupérer l'ID du membre via introspection du token
-  const introspectRes = await fetch("https://api.linkedin.com/v2/introspectToken", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      token: accessToken,
-      client_id: process.env.LINKEDIN_CLIENT_ID,
-      client_secret: process.env.LINKEDIN_CLIENT_SECRET,
-    }),
+  // Récupérer l'URN du profil
+  const profileRes = await fetch("https://api.linkedin.com/v2/userinfo", {
+    headers: { Authorization: `Bearer ${accessToken}` },
   });
-  const introspectData = await introspectRes.json();
-  const memberId = introspectData.auth_type === "member" ? introspectData.member_id : null;
-
-  if (!memberId) {
-    return NextResponse.json({ error: "Impossible de récupérer le member_id", introspect: introspectData }, { status: 500 });
+  if (!profileRes.ok) {
+    const err = await profileRes.text();
+    throw new Error(`Erreur profil LinkedIn : ${err}`);
   }
+  const profile = await profileRes.json();
+  const authorUrn = `urn:li:person:${profile.sub}`;
 
-  const linkedinRes = await fetch("https://api.linkedin.com/v2/ugcPosts", {
+  // Poster
+  const postRes = await fetch("https://api.linkedin.com/v2/ugcPosts", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
       Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
       "X-Restli-Protocol-Version": "2.0.0",
     },
     body: JSON.stringify({
-      author: `urn:li:person:${memberId}`,
+      author: authorUrn,
       lifecycleState: "PUBLISHED",
       specificContent: {
         "com.linkedin.ugc.ShareContent": {
-          shareCommentary: { text: postContent },
+          shareCommentary: { text: content },
           shareMediaCategory: "NONE",
         },
       },
@@ -78,12 +90,41 @@ export async function GET() {
     }),
   });
 
-  const linkedinData = await linkedinRes.json();
+  if (!postRes.ok) {
+    const err = await postRes.text();
+    throw new Error(`Erreur ugcPosts LinkedIn : ${err}`);
+  }
+  return await postRes.json();
+}
 
-  return NextResponse.json({
-    success: true,
-    type: postType,
-    post: postContent,
-    linkedin: linkedinData,
-  });
+export async function GET(request) {
+  // Sécurité cron Vercel (optionnel mais recommandé)
+  const authHeader = request.headers.get("authorization");
+  if (
+    process.env.CRON_SECRET &&
+    authHeader !== `Bearer ${process.env.CRON_SECRET}`
+  ) {
+    return Response.json({ error: "Non autorisé" }, { status: 401 });
+  }
+
+  try {
+    const topic = getTodayTopic();
+    console.log("[LinkedIn] Sujet :", topic);
+
+    const content = await generateContent(topic);
+    console.log("[LinkedIn] Contenu généré :", content.substring(0, 80) + "...");
+
+    const result = await postToLinkedIn(content);
+    console.log("[LinkedIn] Post publié :", result.id);
+
+    return Response.json({
+      success: true,
+      postId: result.id,
+      topic,
+      preview: content.substring(0, 100) + "...",
+    });
+  } catch (err) {
+    console.error("[LinkedIn] Erreur :", err.message);
+    return Response.json({ error: err.message }, { status: 500 });
+  }
 }
