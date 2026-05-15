@@ -30,20 +30,10 @@ export async function GET(request) {
     return NextResponse.json({ error: "Token exchange failed", details: tokenData }, { status: 400 });
   }
 
-  // Retourner toutes les infos pour debug
-  const meRes = await fetch("https://api.linkedin.com/v2/me", {
-    headers: { Authorization: `Bearer ${tokenData.access_token}` },
-  });
-  const meData = await meRes.json();
-
-  const userinfoRes = await fetch("https://api.linkedin.com/v2/userinfo", {
-    headers: { Authorization: `Bearer ${tokenData.access_token}` },
-  });
-  const userinfoData = await userinfoRes.json();
-
   return NextResponse.json({
+    message: "✅ Authentification réussie !",
     access_token: tokenData.access_token,
-    me: meData,
-    userinfo: userinfoData,
+    expires_in: tokenData.expires_in,
+    instruction: "Copiez access_token dans Vercel : LINKEDIN_ACCESS_TOKEN"
   });
 }
