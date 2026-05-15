@@ -6,12 +6,21 @@ const TOPICS = [
   "Tout savoir sur le raccordement batterie + panneaux solaires : AC-couplé vs DC-couplé, onduleurs hybrides",
   "ROI et rentabilité d'un système solaire + batterie en 2025 : chiffres réels, simulation pour une maison de 150 m²",
   "Les aides pour le stockage batterie en France : TVA 5,5%, CEE, aides régionales — ce qui existe vraiment",
-  "Batteries Xcellent vs Xtreme LV vs EBrick de Renon Power : comment choisir la bonne capacité",
+  "Batteries Renon Power : comment choisir entre Xcellent, Xcellent Plus, Xtreme LV et EBrick selon ses besoins",
   "Installateur Quali PV 500 kWc : ce que ça signifie pour la qualité de votre installation solaire",
   "Durée de vie, garantie, maintenance, recyclage des batteries LFP : les vraies réponses",
   "Autoconsommation collective et batteries : les solutions pour copropriétés et PME",
   "Comment dimensionner votre système batterie : capacité utile, profil de consommation, puissance crête",
 ];
+
+const PRODUCT_INFO = `
+Gammes batteries Renon Power distribuées par CLIQUIDE FRANCE :
+- Xcellent : 5,12 kWh (modulaire, résidentiel)
+- Xcellent Plus : 16 kWh (résidentiel grande capacité)
+- Xtreme LV : 10 à 30 kWh (grandes maisons, petits commerces, basse tension)
+- EBrick : 5,12 à 30 kWh (format compact empilable, gain de place)
+Important : tous les modèles (Xcellent, Xcellent Plus, Xtreme LV, EBrick) peuvent être mis en parallèle pour augmenter la capacité totale.
+`;
 
 function getTodayTopic() {
   const dayOfYear = Math.floor(
@@ -28,7 +37,22 @@ async function generateContent(topic) {
     messages: [
       {
         role: "user",
-        content: `Tu es Simon Monteiro, dirigeant de CLIQUIDE FRANCE SAS, expert en stockage d'énergie solaire. Tu distribues les batteries Renon Power (Xcellent, Xtreme LV, EBrick), installateur Quali PV 500 kWc. Site : batterie-stockage.fr | Tel : 06 63 70 66 30 | Zone : Nord de la France\n\nEcris un post LinkedIn professionnel sur ce sujet : "${topic}"\n\nRegles :\n- 150 a 250 mots\n- Commence par une accroche forte (question ou chiffre), PAS par Je ou Bonjour\n- Ton expert mais accessible\n- 1 ou 2 emojis maximum\n- Termine par un appel a l action discret (mentionner batterie-stockage.fr)\n- 3 a 5 hashtags a la fin\n- Reponds UNIQUEMENT avec le texte du post, rien d autre`,
+        content: `Tu es Simon Monteiro, dirigeant de CLIQUIDE FRANCE SAS, expert en stockage d'énergie solaire. Tu distribues les batteries Renon Power, installateur Quali PV 500 kWc. Site : batterie-stockage.fr | Tel : 06 63 70 66 30 | Zone : Nord de la France
+
+Informations produits EXACTES a utiliser si pertinent :
+${PRODUCT_INFO}
+
+Ecris un post LinkedIn professionnel sur ce sujet : "${topic}"
+
+Regles :
+- 150 a 250 mots
+- Commence par une accroche forte (question ou chiffre), PAS par Je ou Bonjour
+- Ton expert mais accessible
+- 1 ou 2 emojis maximum
+- Utilise UNIQUEMENT les capacites et modeles indiques ci-dessus, aucune autre valeur
+- Termine par un appel a l action discret (mentionner batterie-stockage.fr)
+- 3 a 5 hashtags a la fin
+- Reponds UNIQUEMENT avec le texte du post, rien d autre`,
       },
     ],
   });
