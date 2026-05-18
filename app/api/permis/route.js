@@ -11,7 +11,7 @@ export async function GET(request) {
     dep_code: "78",
     permit_types: type,
     limit,
-    sort: "-decision_date",
+    sort: "-date_decision",
   });
 
   if (date_min) params.append("decision_date_min", date_min);
