@@ -1,52 +1,9 @@
 import { NextResponse } from "next/server";
 
-const LIST_IDS = [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25];
-const TEMPLATE_ID = 5;
-
 export async function GET() {
-  const startDate = new Date("2026-05-14");
-  const today = new Date();
-  const dayIndex = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
-
-  if (dayIndex < 0 || dayIndex >= LIST_IDS.length) {
-    return NextResponse.json({ message: "Campagne terminée ou pas encore commencée", dayIndex });
-  }
-
-  const listId = LIST_IDS[dayIndex];
-  const campaignName = `Campagne auto jour ${dayIndex + 1}`;
-
-  const [resSent, resScheduled] = await Promise.all([
-    fetch(`https://api.brevo.com/v3/emailCampaigns?status=sent&limit=50`, { headers: { "api-key": process.env.BREVO_API_KEY } }),
-    fetch(`https://api.brevo.com/v3/emailCampaigns?status=scheduled&limit=50`, { headers: { "api-key": process.env.BREVO_API_KEY } }),
-  ]);
-
-  const [dataSent, dataScheduled] = await Promise.all([resSent.json(), resScheduled.json()]);
-  const allCampaigns = [...(dataSent.campaigns || []), ...(dataScheduled.campaigns || [])];
-  const alreadyExists = allCampaigns.some(c => c.name === campaignName);
-
-  if (alreadyExists) {
-    return NextResponse.json({
-      message: `Campagne jour ${dayIndex + 1} déjà créée — skip`,
-      jour: dayIndex + 1,
-      listId,
-    });
-  }
-
-  const response = await fetch("https://api.brevo.com/v3/emailCampaigns", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "api-key": process.env.BREVO_API_KEY,
-    },
-    body: JSON.stringify({
-      name: campaignName,
-      subject: "Batteries de stockage — tarifs pro, stock disponible, livraison 48h",
-      templateId: TEMPLATE_ID,
-      recipients: { listIds: [listId] },
-      scheduledAt: new Date(today.getTime() + 60000).toISOString(),
-    }),
+  const res = await fetch("https://api.brevo.com/v3/senders", {
+    headers: { "api-key": process.env.BREVO_API_KEY },
   });
-
-  const data = await response.json();
-  return NextResponse.json({ jour: dayIndex + 1, listId, brevo: data });
+  const data = await res.json();
+  return NextResponse.json(data);
 }
