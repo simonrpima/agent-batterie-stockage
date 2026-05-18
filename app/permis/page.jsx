@@ -33,19 +33,19 @@ export default function Permis() {
       const res = await fetch('/api/permis?' + params);
       const data = await res.json();
       if (!data.results) throw new Error(data.message || 'Erreur API');
-      const mapped = data.results.map(function(p, i) {
-        const f = calcSolaire(p.surface_terrain);
+const mapped = data.results.map(function(p, i) {
+        const f = calcSolaire(p.superficie_terrain);
         return {
           id: i,
-          ref: p.permit_number || i,
-          nom: p.applicant_name || p.company_name || 'N/A',
-          commune: p.commune_name || '',
-          cp: p.postal_code || '',
-          adresse: p.address || '',
-          date: p.decision_date || '',
-          surface_terrain: p.surface_terrain || 0,
-          surface_construction: p.surface_construction || 0,
-          statut: p.status || '',
+          ref: p.num_pa || i,
+          nom: p.denom_dem || 'Non renseigné',
+          commune: p.adr_localite_ter || '',
+          cp: '78',
+          adresse: p.full_address || '',
+          date: p.date_reelle_autorisation || '',
+          surface_terrain: p.superficie_terrain || 0,
+          surface_construction: p.superficie_terrain || 0,
+          statut: p.etat_pa || '',
           ...f,
         };
       });
