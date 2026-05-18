@@ -13,41 +13,51 @@ export async function GET() {
   }
 
   const listId = LIST_IDS[dayIndex];
-  const campaignName = `Campagne auto jour ${dayIndex + 1}`;
 
-  const [resSent, resScheduled] = await Promise.all([
-    fetch(`https://api.brevo.com/v3/emailCampaigns?status=sent&limit=50`, { headers: { "api-key": process.env.BREVO_API_KEY } }),
-    fetch(`https://api.brevo.com/v3/emailCampaigns?status=scheduled&limit=50`, { headers: { "api-key": process.env.BREVO_API_KEY } }),
-  ]);
+  // Récupérer les contacts de la liste
+  const contactsRes = await fetch(
+    `https://api.brevo.com/v3/contacts/lists/${listId}/contacts?limit=500`,
+    { headers: { "api-key": process.env.BREVO_API_KEY } }
+  );
+  const contactsData = await contactsRes.json();
+  const contacts = contactsData.contacts || [];
 
-  const [dataSent, dataScheduled] = await Promise.all([resSent.json(), resScheduled.json()]);
-  const allCampaigns = [...(dataSent.campaigns || []), ...(dataScheduled.campaigns || [])];
-  const alreadyExists = allCampaigns.some(c => c.name === campaignName);
-
-  if (alreadyExists) {
-    return NextResponse.json({
-      message: `Campagne jour ${dayIndex + 1} déjà créée — skip`,
-      jour: dayIndex + 1,
-      listId,
-    });
+  if (contacts.length === 0) {
+    return NextResponse.json({ message: "Aucun contact dans la liste", listId, jour: dayIndex + 1 });
   }
 
-  const response = await fetch("https://api.brevo.com/v3/emailCampaigns", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "api-key": process.env.BREVO_API_KEY,
-    },
-    body: JSON.stringify({
-      name: campaignName,
-      subject: "Batteries de stockage — tarifs pro, stock disponible, livraison 48h",
-      sender: { id: 1 },
-      templateId: TEMPLATE_ID,
-      recipients: { listIds: [listId] },
-      scheduledAt: new Date(today.getTime() + 60000).toISOString(),
-    }),
-  });
+  // Envoyer un email transactionnel à chaque contact
+  let sent = 0;
+  let errors = 0;
 
-  const data = await response.json();
-  return NextResponse.json({ jour: dayIndex + 1, listId, brevo: data });
+  for (const contact of contacts) {
+    if (!contact.email) continue;
+    try {
+      const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "api-key": process.env.BREVO_API_KEY,
+        },
+        body: JSON.stringify({
+          to: [{ email: contact.email }],
+          templateId: TEMPLATE_ID,
+          sender: { name: "CLIQUIDE FRANCE", email: "Contact@batterie-stockage.fr" },
+        }),
+      });
+      if (res.ok) sent++;
+      else errors++;
+    } catch {
+      errors++;
+    }
+  }
+
+  return NextResponse.json({
+    success: true,
+    jour: dayIndex + 1,
+    listId,
+    totalContacts: contacts.length,
+    sent,
+    errors,
+  });
 }
