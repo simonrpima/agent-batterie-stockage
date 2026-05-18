@@ -21,6 +21,6 @@ export async function GET(request) {
     headers: { "X-API-Key": process.env.PERMISAPI_KEY },
   });
 
-  const data = await res.json();
-  return NextResponse.json(data);
+ const data = await res.json();
+return NextResponse.json({ results: data.data, pagination: data.pagination });
 }
