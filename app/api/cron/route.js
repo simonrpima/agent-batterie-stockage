@@ -47,7 +47,7 @@ export async function GET() {
     body: JSON.stringify({
       name: campaignName,
       subject: "Batteries de stockage — tarifs pro, stock disponible, livraison 48h",
-      sender: { name: "CLIQUIDE FRANCE", email: "Contact@batterie-stockage.fr" },
+      sender: { id: "69fa384cd2ca7a4adea5934c" },
       templateId: TEMPLATE_ID,
       recipients: { listIds: [listId] },
       scheduledAt: new Date(today.getTime() + 60000).toISOString(),
