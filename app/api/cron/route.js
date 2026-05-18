@@ -15,19 +15,13 @@ export async function GET() {
   const listId = LIST_IDS[dayIndex];
   const campaignName = `Campagne auto jour ${dayIndex + 1}`;
 
-  // VERROU — on vérifie dans TOUTES les campagnes (sent + scheduled)
   const [resSent, resScheduled] = await Promise.all([
     fetch(`https://api.brevo.com/v3/emailCampaigns?status=sent&limit=50`, { headers: { "api-key": process.env.BREVO_API_KEY } }),
     fetch(`https://api.brevo.com/v3/emailCampaigns?status=scheduled&limit=50`, { headers: { "api-key": process.env.BREVO_API_KEY } }),
   ]);
 
   const [dataSent, dataScheduled] = await Promise.all([resSent.json(), resScheduled.json()]);
-
-  const allCampaigns = [
-    ...(dataSent.campaigns || []),
-    ...(dataScheduled.campaigns || []),
-  ];
-
+  const allCampaigns = [...(dataSent.campaigns || []), ...(dataScheduled.campaigns || [])];
   const alreadyExists = allCampaigns.some(c => c.name === campaignName);
 
   if (alreadyExists) {
@@ -47,7 +41,6 @@ export async function GET() {
     body: JSON.stringify({
       name: campaignName,
       subject: "Batteries de stockage — tarifs pro, stock disponible, livraison 48h",
-      sender: { id: "69fa384cd2ca7a4adea5934c" },
       templateId: TEMPLATE_ID,
       recipients: { listIds: [listId] },
       scheduledAt: new Date(today.getTime() + 60000).toISOString(),
