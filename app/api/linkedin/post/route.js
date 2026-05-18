@@ -1,5 +1,19 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { kv } from "@vercel/kv";
+
+const kv = {
+  get: async (key) => {
+    const r = await fetch(`${process.env.KV_REST_API_URL}/get/${key}`, {
+      headers: { Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}` }
+    });
+    const d = await r.json();
+    return d.result;
+  },
+  set: async (key, value) => {
+    await fetch(`${process.env.KV_REST_API_URL}/set/${key}/${value}`, {
+      headers: { Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}` }
+    });
+  }
+};
 
 const TOPICS = [
   "Les avantages du stockage par batterie pour les particuliers : autoconsommation optimisée, indépendance du réseau, économies sur la facture EDF",
@@ -111,16 +125,13 @@ export async function GET(request) {
   }
 
   try {
-    // 🔒 VERROU — on vérifie si on a déjà posté aujourd'hui
+    // 🔒 VERROU — vérification de la date du dernier post
     const today = new Date().toISOString().split("T")[0];
     const lastPostDate = await kv.get("linkedin_last_post_date");
 
     if (lastPostDate === today) {
       console.log("[LinkedIn] Déjà posté aujourd'hui — skip");
-      return Response.json({
-        message: "Déjà posté aujourd'hui — skip",
-        date: today,
-      });
+      return Response.json({ message: "Déjà posté aujourd'hui — skip", date: today });
     }
 
     const topic = getTodayTopic();
