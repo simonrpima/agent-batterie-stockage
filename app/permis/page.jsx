@@ -150,3 +150,24 @@ export default function Permis() {
                     <div style={{fontSize:'0.65rem',color:'#5a7a5a',marginBottom:'8px',textTransform:'uppercase',letterSpacing:'0.1em'}}>Potentiel solaire</div>
                     <div style={{fontSize:'0.8rem'}}>
                       {[['Toiture estimée',p.toiture+' m²'],['Puissance',p.puissance+' kWc'],['Production/an',p.production.toLocaleString()+' kWh'],['Revenus/an',p.revenusAn.toLocaleString()+' EUR'],['Revenus 20 ans',p.revenus20.toLocaleString
+.map(function([label,val]){
+                    return <div key={label} style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom:'1px solid #1e2e1e'}}><span style={{color:'#5a7a5a'}}>{label}</span><span style={{color:label==='Puissance'||label==='Revenus/an'||label==='Revenus 20 ans'?'#4ade80':label==='ROI'?'#fb923c':'#e2f0e2'}}>{val}</span></div>;
+                  })}
+                </div>
+              </div>
+            </div>
+            <div style={{marginTop:'16px',padding:'14px',background:'rgba(251,146,60,0.03)',border:'1px solid rgba(251,146,60,0.15)',fontSize:'0.8rem',lineHeight:'1.7'}}>
+              <div style={{color:'#fb923c',fontSize:'0.65rem',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:'8px'}}>Pitch commercial</div>
+              Bonjour, je contacte {p.nom} suite à votre permis de construire à {p.commune}. Votre nouveau bâtiment est éligible à une installation solaire de {p.puissance} kWc, générant {p.revenusAn.toLocaleString()} EUR/an — soit {p.revenus20.toLocaleString()} EUR sur 20 ans. ROI en {p.roi} ans. Contactez-nous sur batterie-stockage.fr
+            </div>
+            <a href={'https://maps.google.fr/?q='+encodeURIComponent((p.adresse||p.nom)+' '+p.commune)} target="_blank" style={{display:'inline-block',marginTop:'12px',padding:'8px 16px',background:'rgba(96,165,250,0.1)',border:'1px solid rgba(96,165,250,0.3)',color:'#60a5fa',textDecoration:'none',fontSize:'0.75rem'}}>
+              Voir sur Google Maps
+            </a>
+          </div>
+        )}
+      </div>
+    );
+  })}
+</div>
+  );
+}
