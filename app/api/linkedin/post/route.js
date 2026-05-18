@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { kv } from "@vercel/kv";
 
 const TOPICS = [
   "Les avantages du stockage par batterie pour les particuliers : autoconsommation optimisée, indépendance du réseau, économies sur la facture EDF",
@@ -7,7 +8,6 @@ const TOPICS = [
   "ROI et rentabilité d'un système solaire + batterie en 2025 : chiffres réels, simulation pour une maison de 150 m²",
   "Les aides pour le stockage batterie en France : TVA 5,5%, CEE, aides régionales — ce qui existe vraiment",
   "Batteries Renon Power : comment choisir entre Xcellent, Xcellent Plus, Xtreme LV et EBrick selon ses besoins",
-  "Installateur Quali PV 500 kWc : ce que ça signifie pour la qualité de votre installation solaire",
   "Durée de vie, garantie, maintenance, recyclage des batteries LFP : les vraies réponses",
   "Autoconsommation collective et batteries : les solutions pour copropriétés et PME",
   "Comment dimensionner votre système batterie : capacité utile, profil de consommation, puissance crête",
@@ -19,7 +19,7 @@ Gammes batteries Renon Power distribuées par CLIQUIDE FRANCE :
 - Xcellent Plus : 16 kWh (résidentiel grande capacité)
 - Xtreme LV : 10 à 30 kWh (grandes maisons, petits commerces, basse tension)
 - EBrick : 5,12 à 30 kWh (format compact empilable, gain de place)
-Important : tous les modèles (Xcellent, Xcellent Plus, Xtreme LV, EBrick) peuvent être mis en parallèle pour augmenter la capacité totale.
+Important : tous les modèles peuvent être mis en parallèle pour augmenter la capacité totale.
 `;
 
 function getTodayTopic() {
@@ -37,7 +37,7 @@ async function generateContent(topic) {
     messages: [
       {
         role: "user",
-        content: `Tu es Simon Monteiro, dirigeant de CLIQUIDE FRANCE SAS, expert en stockage d'énergie solaire. Tu distribues les batteries Renon Power, installateur Quali PV 500 kWc. Site : batterie-stockage.fr | Tel : 06 63 70 66 30 | Zone : Nord de la France
+        content: `Tu es Simon Monteiro, dirigeant de CLIQUIDE FRANCE SAS, expert en stockage d'énergie solaire. Tu distribues les batteries Renon Power. Site : batterie-stockage.fr | Tel : 06 63 70 66 30 | Zone : Nord de la France
 
 Informations produits EXACTES a utiliser si pertinent :
 ${PRODUCT_INFO}
@@ -111,12 +111,28 @@ export async function GET(request) {
   }
 
   try {
+    // 🔒 VERROU — on vérifie si on a déjà posté aujourd'hui
+    const today = new Date().toISOString().split("T")[0];
+    const lastPostDate = await kv.get("linkedin_last_post_date");
+
+    if (lastPostDate === today) {
+      console.log("[LinkedIn] Déjà posté aujourd'hui — skip");
+      return Response.json({
+        message: "Déjà posté aujourd'hui — skip",
+        date: today,
+      });
+    }
+
     const topic = getTodayTopic();
     console.log("[LinkedIn] Sujet :", topic);
     const content = await generateContent(topic);
-    console.log("[LinkedIn] Contenu genere :", content.substring(0, 80) + "...");
+    console.log("[LinkedIn] Contenu généré :", content.substring(0, 80) + "...");
     const result = await postToLinkedIn(content);
-    console.log("[LinkedIn] Post publie :", result.id);
+    console.log("[LinkedIn] Post publié :", result.id);
+
+    // ✅ On enregistre la date du post
+    await kv.set("linkedin_last_post_date", today);
+
     return Response.json({
       success: true,
       postId: result.id,
