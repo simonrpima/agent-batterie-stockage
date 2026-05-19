@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+export const maxDuration = 60;
+
 export async function POST(request) {
   const body = await request.json();
 
@@ -8,11 +10,11 @@ export async function POST(request) {
     headers: {
       "Content-Type": "application/json",
       "x-api-key": process.env.ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01"
+      "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-sonnet-4-5",
-      max_tokens: 1024,
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 2048,
       messages: body.messages
     })
   });
