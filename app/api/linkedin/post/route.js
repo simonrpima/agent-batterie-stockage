@@ -37,10 +37,10 @@ Important : tous les modèles peuvent être mis en parallèle pour augmenter la 
 `;
 
 const IMAGE_COUNTS = {
-  "xcellent": 10,
+  "xcellent": 9,
   "xcellent-plus": 7,
-  "xtreme-lv": 7,
-  "ebrick": 9,
+  "xtreme-lv": 9,
+  "ebrick": 8,
 };
 
 const BASE_IMAGE_URL = "https://raw.githubusercontent.com/simonrpima/batterie-stockage-html/main/images/batteries";
