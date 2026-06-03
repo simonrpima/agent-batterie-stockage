@@ -48,7 +48,7 @@ async function postToLinkedIn(accessToken, text, imageAsset) {
     const topic = getTodayTopic();
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const completion = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-20241022",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 1000,
       messages: [{ role: "user", content: `Tu es un expert en stockage d energie solaire. Redige un post LinkedIn professionnel en francais sur : "${topic.text}". 150-250 mots, accroche forte, appel action vers batterie-stockage.fr, 2-3 emojis, 3-4 hashtags a la fin, pas de prix specifiques.` }]
     });
