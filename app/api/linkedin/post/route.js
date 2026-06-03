@@ -1,31 +1,4 @@
-eCommentary: { text }, shareMediaCategory: imageAsset ? "IMAGE" : "NONE", ...(imageAsset && { media: [{ status: "READY", description: { text: "Batterie Renon Power" }, media: imageAsset, title: { text: "Batterie Stockage FR" } }] }) } }, visibility: { "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC" } };
-  const res = await fetch("https://api.linkedin.com/v2/ugcPosts", { method: "POST", headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json", "X-Restli-Protocol-Version": "2.0.0" }, body: JSON.stringify(body) });
-  return res.json();
-}
-
-export async function POST(request) {
-  try {
-    const accessToken = process.env.LINKEDIN_ACCESS_TOKEN;
-    if (!accessToken) return Response.json({ error: "LINKEDIN_ACCESS_TOKEN manquant" }, { status: 500 });
-    const topic = getTodayTopic();
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    const completion = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-20241022",
-      max_tokens: 1000,
-      messages: [{ role: "user", content: `Tu es un expert en stockage d energie solaire. Redige un post LinkedIn professionnel en francais sur : "${topic.text}". 150-250 mots, accroche forte, appel action vers batterie-stockage.fr, 2-3 emojis, 3-4 hashtags a la fin, pas de prix specifiques.` }]
-    });
-    const postText = completion.content[0].text;
-    let imageAsset = null;
-    try {
-      const { base64 } = await getImageAsBase64(topic.model);
-      imageAsset = await uploadImageToLinkedIn(accessToken, base64);
-    } catch (e) { console.error("Image error:", e); }
-    const linkedinResult = await postToLinkedIn(accessToken, postText, imageAsset);
-    return Response.json({ success: true, topic: topic.text, post: postText, linkedin: linkedinResult });
-  } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
-  }
-}import Anthropic from "@anthropic-ai/sdk";
+import Anthropic from "@anthropic-ai/sdk";
 
 const TOPICS = [
   { text: "Les avantages du stockage par batterie pour les particuliers", model: "xcellent-plus" },
@@ -63,11 +36,31 @@ async function uploadImageToLinkedIn(accessToken, base64Data) {
   const asset = initData.value.asset;
   await fetch(uploadUrl, { method: "PUT", headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "image/jpeg" }, body: Buffer.from(base64Data, "base64") });
   return asset;
-}Data, "base64") });
-  return asset;
 }
 async function postToLinkedIn(accessToken, text, imageAsset) {
   const body = { author: `urn:li:person:${process.env.LINKEDIN_PERSON_ID}`, lifecycleState: "PUBLISHED", specificContent: { "com.linkedin.ugc.ShareContent": { shareCommentary: { text }, shareMediaCategory: imageAsset ? "IMAGE" : "NONE", ...(imageAsset && { media: [{ status: "READY", description: { text: "Batterie Renon Power" }, media: imageAsset, title: { text: "Batterie Stockage FR" } }] }) } }, visibility: { "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC" } };
   const res = await fetch("https://api.linkedin.com/v2/ugcPosts", { method: "POST", headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json", "X-Restli-Protocol-Version": "2.0.0" }, body: JSON.stringify(body) });
   return res.json();
+}export async function POST(request) {
+  try {
+    const accessToken = process.env.LINKEDIN_ACCESS_TOKEN;
+    if (!accessToken) return Response.json({ error: "LINKEDIN_ACCESS_TOKEN manquant" }, { status: 500 });
+    const topic = getTodayTopic();
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const completion = await anthropic.messages.create({
+      model: "claude-3-5-sonnet-20241022",
+      max_tokens: 1000,
+      messages: [{ role: "user", content: `Tu es un expert en stockage d energie solaire. Redige un post LinkedIn professionnel en francais sur : "${topic.text}". 150-250 mots, accroche forte, appel action vers batterie-stockage.fr, 2-3 emojis, 3-4 hashtags a la fin, pas de prix specifiques.` }]
+    });
+    const postText = completion.content[0].text;
+    let imageAsset = null;
+    try {
+      const { base64 } = await getImageAsBase64(topic.model);
+      imageAsset = await uploadImageToLinkedIn(accessToken, base64);
+    } catch (e) { console.error("Image error:", e); }
+    const linkedinResult = await postToLinkedIn(accessToken, postText, imageAsset);
+    return Response.json({ success: true, topic: topic.text, post: postText, linkedin: linkedinResult });
+  } catch (error) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
 }
