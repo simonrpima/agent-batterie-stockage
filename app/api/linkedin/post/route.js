@@ -58,4 +58,19 @@ export async function POST(request) {
     const completion = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 1000,
-      messages: [{ role: "user", content: `Tu es un expert en stockage d energie solaire. Redige un post LinkedIn professionnel en francais sur : "${topic.text}". 150-250 mots, accroche forte, appel action vers batteri
+      messages: [{ role: "user", content: `Tu es un expert en stockage d energie solaire. Redige un post LinkedIn professionnel en francais sur : "${topic.text}". 150-250 mots, accroche forte, appel action vers batterie-stockage.fr, 2-3 emojis, 3-4 hashtags a la fin, pas de prix specifiques.` }]
+    });
+    const postText = completion.content[0].text;
+    let imageAsset = null;
+    try {
+      const base64 = await getImageAsBase64(topic.model);
+      imageAsset = await uploadImageToLinkedIn(accessToken, base64);
+    } catch (e) { console.error("Image error:", e.message); }
+    const linkedinResult = await postToLinkedIn(accessToken, postText, imageAsset);
+    console.log("LinkedIn result:", JSON.stringify(linkedinResult));
+    return Response.json({ success: true, topic: topic.text, post: postText, linkedin: linkedinResult });
+  } catch (error) {
+    console.error("ERREUR:", error.message);
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+}
