@@ -59,6 +59,7 @@ async function postToLinkedIn(accessToken, text, imageAsset) {
       imageAsset = await uploadImageToLinkedIn(accessToken, base64);
     } catch (e) { console.error("Image error:", e); }
     const linkedinResult = await postToLinkedIn(accessToken, postText, imageAsset);
+	console.log("LinkedIn result:", JSON.stringify(linkedinResult));
     return Response.json({ success: true, topic: topic.text, post: postText, linkedin: linkedinResult });
   } catch (error) {
 	  console.error("ERREUR:", error.message, error.stack);
