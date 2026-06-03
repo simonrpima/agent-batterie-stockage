@@ -13,35 +13,43 @@ const TOPICS = [
 ];
 const IMAGE_COUNTS = { "xcellent": 9, "xcellent-plus": 7, "xtreme-lv": 9, "ebrick": 8 };
 const BASE_IMAGE_URL = "https://raw.githubusercontent.com/simonrpima/batterie-stockage-html/main/images/batteries";
+const PERSON_ID = "83pLP4CfJm";
+
 function getTodayTopic() {
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
   return TOPICS[dayOfYear % TOPICS.length];
-}async function getImageAsBase64(model) {
+}
+
+async function getImageAsBase64(model) {
   const count = IMAGE_COUNTS[model] || 1;
   const randomIndex = Math.floor(Math.random() * count) + 1;
   const url = `${BASE_IMAGE_URL}/${model}/jpeg${randomIndex}.jpg`;
   const response = await fetch(url);
   const buffer = await response.arrayBuffer();
-  const base64 = Buffer.from(buffer).toString("base64");
-  return { base64, url };
+  return Buffer.from(buffer).toString("base64");
 }
+
 async function uploadImageToLinkedIn(accessToken, base64Data) {
   const initRes = await fetch("https://api.linkedin.com/v2/assets?action=registerUpload", {
     method: "POST",
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json", "X-Restli-Protocol-Version": "2.0.0" },
-    body: JSON.stringify({ registerUploadRequest: { recipes: ["urn:li:digitalmediaRecipe:feedshare-image"], owner: `href="xcellent.html" style="display:block;background:#0f2210;border:1px solid #4ade80;color:#4ade80;padding:12px;border-radius:`, serviceRelationships: [{ relationshipType: "OWNER", identifier: "urn:li:userGeneratedContent" }] } }),
+    body: JSON.stringify({ registerUploadRequest: { recipes: ["urn:li:digitalmediaRecipe:feedshare-image"], owner: `urn:li:person:${PERSON_ID}`, serviceRelationships: [{ relationshipType: "OWNER", identifier: "urn:li:userGeneratedContent" }] } }),
   });
   const initData = await initRes.json();
+  console.log("initData:", JSON.stringify(initData));
   const uploadUrl = initData.value.uploadMechanism["com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"].uploadUrl;
   const asset = initData.value.asset;
   await fetch(uploadUrl, { method: "PUT", headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "image/jpeg" }, body: Buffer.from(base64Data, "base64") });
   return asset;
 }
+
 async function postToLinkedIn(accessToken, text, imageAsset) {
-  const body = { author: `urn:li:person:83pLP4CfJm`, lifecycleState: "PUBLISHED", specificContent: { "com.linkedin.ugc.ShareContent": { shareCommentary: { text }, shareMediaCategory: imageAsset ? "IMAGE" : "NONE", ...(imageAsset && { media: [{ status: "READY", description: { text: "Batterie Renon Power" }, media: imageAsset, title: { text: "Batterie Stockage FR" } }] }) } }, visibility: { "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC" } };
+  const body = { author: `urn:li:person:${PERSON_ID}`, lifecycleState: "PUBLISHED", specificContent: { "com.linkedin.ugc.ShareContent": { shareCommentary: { text }, shareMediaCategory: imageAsset ? "IMAGE" : "NONE", ...(imageAsset && { media: [{ status: "READY", description: { text: "Batterie Renon Power" }, media: imageAsset, title: { text: "Batterie Stockage FR" } }] }) } }, visibility: { "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC" } };
   const res = await fetch("https://api.linkedin.com/v2/ugcPosts", { method: "POST", headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json", "X-Restli-Protocol-Version": "2.0.0" }, body: JSON.stringify(body) });
   return res.json();
-}export async function POST(request) {
+}
+
+export async function POST(request) {
   try {
     const accessToken = process.env.LINKEDIN_ACCESS_TOKEN;
     if (!accessToken) return Response.json({ error: "LINKEDIN_ACCESS_TOKEN manquant" }, { status: 500 });
@@ -50,19 +58,4 @@ async function postToLinkedIn(accessToken, text, imageAsset) {
     const completion = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 1000,
-      messages: [{ role: "user", content: `Tu es un expert en stockage d energie solaire. Redige un post LinkedIn professionnel en francais sur : "${topic.text}". 150-250 mots, accroche forte, appel action vers batterie-stockage.fr, 2-3 emojis, 3-4 hashtags a la fin, pas de prix specifiques.` }]
-    });
-    const postText = completion.content[0].text;
-    let imageAsset = null;
-    try {
-      const { base64 } = await getImageAsBase64(topic.model);
-      imageAsset = await uploadImageToLinkedIn(accessToken, base64);
-    } catch (e) { console.error("Image error:", e); }
-    const linkedinResult = await postToLinkedIn(accessToken, postText, imageAsset);
-	console.log("LinkedIn result:", JSON.stringify(linkedinResult));
-    return Response.json({ success: true, topic: topic.text, post: postText, linkedin: linkedinResult });
-  } catch (error) {
-	  console.error("ERREUR:", error.message, error.stack);
-    return Response.json({ error: error.message }, { status: 500 });
-  }
-}
+      messages: [{ role: "user", content: `Tu es un expert en stockage d energie solaire. Redige un post LinkedIn professionnel en francais sur : "${topic.text}". 150-250 mots, accroche forte, appel action vers batteri
