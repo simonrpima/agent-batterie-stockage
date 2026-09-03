@@ -21,23 +21,27 @@ async function vercel(path, init = {}) {
   return data;
 }
 
-async function saveTokenToVercel(accessToken) {
+async function upsertEnv(projectId, envs, key, value, type) {
+  const existing = envs.find((e) => e.key === key);
+  if (existing) {
+    await vercel(`/v9/projects/${projectId}/env/${existing.id}`, { method: "PATCH", body: JSON.stringify({ value }) });
+    return `Variable ${key} mise à jour`;
+  }
+  await vercel(`/v10/projects/${projectId}/env`, { method: "POST", body: JSON.stringify({ key, value, type, target: ["production", "preview"] }) });
+  return `Variable ${key} créée`;
+}
+
+async function saveTokenToVercel(accessToken, expiresAtIso) {
   const projectId = process.env.VERCEL_PROJECT_ID;
   if (!process.env.VERCEL_TOKEN || !projectId) return { done: false, reason: "VERCEL_TOKEN ou VERCEL_PROJECT_ID absent" };
 
   const steps = [];
-  // 1. Retrouver la variable
+  // 1. Variables existantes
   const { envs = [] } = await vercel(`/v9/projects/${projectId}/env`);
-  const existing = envs.find((e) => e.key === ENV_KEY);
 
-  // 2. Mettre à jour (ou créer)
-  if (existing) {
-    await vercel(`/v9/projects/${projectId}/env/${existing.id}`, { method: "PATCH", body: JSON.stringify({ value: accessToken }) });
-    steps.push(`Variable ${ENV_KEY} mise à jour`);
-  } else {
-    await vercel(`/v10/projects/${projectId}/env`, { method: "POST", body: JSON.stringify({ key: ENV_KEY, value: accessToken, type: "encrypted", target: ["production", "preview"] }) });
-    steps.push(`Variable ${ENV_KEY} créée`);
-  }
+  // 2. Jeton (secret) + date d'expiration (lisible, pour /api/health)
+  steps.push(await upsertEnv(projectId, envs, ENV_KEY, accessToken, "encrypted"));
+  steps.push(await upsertEnv(projectId, envs, "LINKEDIN_TOKEN_EXPIRES_AT", expiresAtIso, "plain"));
 
   // 3. Redéployer la dernière prod pour que la nouvelle valeur soit prise en compte
   const project = await vercel(`/v9/projects/${projectId}`);
@@ -81,7 +85,8 @@ export async function GET(request) {
   const tokenData = await tokenRes.json();
   const accessToken = tokenData.access_token;
   const expiresJours = Math.round(tokenData.expires_in / 86400);
-  const expireLe = new Date(Date.now() + tokenData.expires_in * 1000).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+  const expiresAtIso = new Date(Date.now() + tokenData.expires_in * 1000).toISOString();
+  const expireLe = new Date(expiresAtIso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 
   const profileRes = await fetch("https://api.linkedin.com/v2/userinfo", { headers: { Authorization: `Bearer ${accessToken}` } });
   const profile = profileRes.ok ? await profileRes.json() : {};
@@ -89,7 +94,7 @@ export async function GET(request) {
 
   // Tentative d'enregistrement automatique dans Vercel
   let auto;
-  try { auto = await saveTokenToVercel(accessToken); }
+  try { auto = await saveTokenToVercel(accessToken, expiresAtIso); }
   catch (e) { auto = { done: false, reason: e.message }; }
 
   if (auto.done) {
